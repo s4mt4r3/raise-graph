@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RAISE-26 · AI Impact Network</title>
+<style>
+  :root {
+    --c-pos: #97C459; --c-neg: #F09595; --c-neu: #EF9F27;
+    --color-background-primary: #1a1a1a;
+    --color-background-secondary: #111111;
+    --color-background-tertiary: #2a2a2a;
+    --color-border-primary: #444444;
+    --color-border-secondary: #333333;
+    --color-border-tertiary: #2a2a2a;
+    --color-text-primary: #f0f0f0;
+    --color-text-secondary: #b0b0b0;
+    --color-text-tertiary: #707070;
+    --border-radius-lg: 10px;
+    --border-radius-md: 6px;
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  body, html { background: #111111; margin: 0; padding: 0; font-family: var(--font-sans); }
+
+  #header {
+    padding: 16px 20px 10px;
+    border-bottom: 0.5px solid var(--color-border-tertiary);
+  }
+  #header h1 { margin: 0; font-size: 15px; font-weight: 600; color: var(--color-text-primary); }
+  #header p  { margin: 3px 0 0; font-size: 11px; color: var(--color-text-tertiary); }
+
+  #tabs {
+    display: flex; gap: 2px; padding: 10px 20px 0;
+    border-bottom: 0.5px solid var(--color-border-tertiary);
+  }
+  .tab {
+    font-size: 11px; padding: 5px 14px; border-radius: 6px 6px 0 0;
+    border: 0.5px solid transparent; background: none;
+    color: var(--color-text-tertiary); cursor: pointer; transition: all 0.15s;
+  }
+  .tab.act {
+    background: var(--color-background-tertiary);
+    color: var(--color-text-primary);
+    border-color: var(--color-border-secondary);
+    border-bottom-color: var(--color-background-tertiary);
+  }
+
+  #gw { position: relative; width: 100%; height: 520px; overflow: hidden; background: var(--color-background-secondary); }
+  #gsvg { width: 100%; height: 100%; }
+  .glink { fill: none; }
+  .gnlabel { pointer-events: none; font-family: var(--font-sans); }
+  #gtip {
+    position: absolute; background: var(--color-background-primary);
+    border: 0.5px solid var(--color-border-secondary);
+    border-radius: var(--border-radius-md); padding: 10px 13px;
+    font-size: 12px; line-height: 1.6; pointer-events: none;
+    display: none; max-width: 230px; z-index: 10;
+    color: var(--color-text-secondary);
+  }
+  #gctrls {
+    position: absolute; top: 12px; right: 12px;
+    display: flex; flex-direction: column; gap: 5px; align-items: flex-end;
+  }
+  #glgd {
+    position: absolute; bottom: 12px; left: 12px;
+    font-size: 11px; color: var(--color-text-secondary); line-height: 1.8;
+  }
+  .ld { display: flex; align-items: center; gap: 5px; }
+  .ldd { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+  .fbtn {
+    font-size: 11px; padding: 4px 10px; border-radius: 20px;
+    border: 0.5px solid var(--color-border-secondary);
+    background: var(--color-background-primary); color: var(--color-text-secondary);
+    cursor: pointer; transition: all 0.15s;
+  }
+  .fbtn.act {
+    background: var(--color-background-tertiary);
+    color: var(--color-text-primary); border-color: var(--color-border-primary);
+  }
+  #gstats {
+    position: absolute; top: 12px; left: 12px;
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .gstat { font-size: 10px; color: var(--color-text-tertiary); line-height: 1.4; }
+  .gstat b { color: var(--color-text-secondary); font-weight: 500; }
+  #ghint { position: absolute; bottom: 12px; right: 12px; font-size: 10px; color: var(--color-text-tertiary); text-align: right; }
+
+  #statsbar {
+    display: flex; flex-wrap: wrap; gap: 1px;
+    background: var(--color-border-tertiary);
+    border-top: 0.5px solid var(--color-border-tertiary);
+  }
+  .scard {
+    flex: 1 1 140px; background: var(--color-background-primary);
+    padding: 10px 14px;
+  }
+  .scard .val { font-size: 20px; font-weight: 700; color: var(--color-text-primary); }
+  .scard .lbl { font-size: 10px; color: var(--color-text-tertiary); margin-top: 1px; }
+  .scard .sub { font-size: 10px; color: var(--color-text-tertiary); }
+
+  #note {
+    padding: 8px 20px; font-size: 10px; color: var(--color-text-tertiary);
+    border-top: 0.5px solid var(--color-border-tertiary);
+    line-height: 1.6;
+  }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <h1>RAISE-26 · AI Impact on Human Behavior — Topic Network</h1>
+  <p>ScarletAPIs NLP Analysis · 10,500 articles · BERTopic + Narrative Framing + Behavioral Detection</p>
+</div>
+
+<div id="tabs">
+  <button class="tab act" onclick="switchView('topics',this)">BERTopic Clusters</button>
+  <button class="tab" onclick="switchView('framing',this)">Narrative Framing</button>
+  <button class="tab" onclick="switchView('behavior',this)">Behavioral Indicators</button>
+</div>
+
+<div id="gw">
+  <svg id="gsvg"></svg>
+  <div id="gtip"></div>
+  <div id="gstats">
+    <div class="gstat" id="stat1"><b>10,500</b> articles · <b>89</b> day span</div>
+    <div class="gstat" id="stat2"><b>11</b> BERTopic clusters</div>
+  </div>
+  <div id="gctrls">
+    <div style="font-size:10px;color:var(--color-text-tertiary);margin-bottom:1px">filter sentiment</div>
+    <button class="fbtn act" onclick="doFilter('all',this)">All</button>
+    <button class="fbtn" onclick="doFilter('positive',this)" style="color:var(--c-pos)">Positive</button>
+    <button class="fbtn" onclick="doFilter('negative',this)" style="color:var(--c-neg)">Negative</button>
+    <button class="fbtn" onclick="doFilter('neutral',this)" style="color:var(--c-neu)">Neutral</button>
+    <button class="fbtn" style="margin-top:4px" onclick="resetZoom()">Reset view</button>
+  </div>
+  <div id="glgd">
+    <div style="font-size:11px;font-weight:500;color:var(--color-text-primary);margin-bottom:3px">Majority sentiment</div>
+    <div class="ld"><div class="ldd" style="background:var(--c-pos)"></div>Positive</div>
+    <div class="ld"><div class="ldd" style="background:var(--c-neg)"></div>Negative</div>
+    <div class="ld"><div class="ldd" style="background:var(--c-neu)"></div>Neutral</div>
+    <div style="margin-top:7px;color:var(--color-text-tertiary);font-size:10px;line-height:1.6">
+      Node size = article count<br>Edge = co-occurrence strength<br>Closer = more likely together
+    </div>
+  </div>
+  <div id="ghint">Drag · scroll to zoom</div>
+</div>
+
+<div id="statsbar">
+  <div class="scard">
+    <div class="val" style="color:var(--c-neu)">71.0%</div>
+    <div class="lbl">Neutral sentiment (RoBERTa)</div>
+    <div class="sub">7,454 / 10,500 articles</div>
+  </div>
+  <div class="scard">
+    <div class="val" style="color:var(--c-pos)">16.1%</div>
+    <div class="lbl">Positive sentiment</div>
+    <div class="sub">1,691 articles</div>
+  </div>
+  <div class="scard">
+    <div class="val" style="color:var(--c-neg)">12.9%</div>
+    <div class="lbl">Negative sentiment</div>
+    <div class="sub">1,355 articles</div>
+  </div>
+  <div class="scard">
+    <div class="val" style="color:var(--c-pos)">3.3×</div>
+    <div class="lbl">Adoption outpaces concern</div>
+    <div class="sub">1,295 adoption · 391 concern</div>
+  </div>
+  <div class="scard">
+    <div class="val" style="color:var(--c-pos)">1.9×</div>
+    <div class="lbl">Tool framing over agent</div>
+    <div class="sub">722 tool · 372 agent mentions</div>
+  </div>
+  <div class="scard">
+    <div class="val" style="color:var(--c-neg)">3.1%</div>
+    <div class="lbl">Ethics coverage gap</div>
+    <div class="sub">328 / 10,500 articles</div>
+  </div>
+</div>
+
+<div id="note">
+  ⓘ  Node frequencies sourced from BERTopic (docs per cluster), narrative framing pattern matching, and behavioral keyword detection — all run on Dataset A (n = 10,500). Sentiment labels per node derived from RoBERTa (cardiffnlp/twitter-roberta-base-sentiment-latest). Emotions from SamLowe/roberta-base-go_emotions.
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script>
+// ─── DATA FROM NOTEBOOK ────────────────────────────────────────────────────
+// BERTopic actual doc counts (Cell 39), sentiment from RoBERTa (Cell 20),
+// emotions from GoEmotions (Cell 28), framing from Cell 45, behavior Cell 51
+
+const VIEWS = {
+  topics: {
+    stat2: "<b>11</b> BERTopic clusters",
+    nodes: [
+      // freq = actual BERTopic doc count
+      {id:"jobs",      label:"Jobs & Workers",         freq:829, s:"negative", sc:-0.42, em:"concern (top), fear",      src:"BERTopic T0 · 829 docs"},
+      {id:"edu",       label:"Education & Learning",   freq:645, s:"neutral",  sc:0.08,  em:"curiosity (top)",          src:"BERTopic T1+T4 · 453+192 docs"},
+      {id:"chatbots",  label:"Chatbots & LLMs",        freq:287, s:"neutral",  sc:0.12,  em:"curiosity, confusion",     src:"BERTopic T2 · 287 docs"},
+      {id:"health",    label:"Healthcare AI",           freq:276, s:"positive", sc:0.61,  em:"optimism, admiration",    src:"BERTopic T3 · 276 docs"},
+      {id:"threat",    label:"Fear & Threat",           freq:187, s:"negative", sc:-0.55, em:"fear (top), nervousness", src:"BERTopic T5 · 187 docs"},
+      {id:"finance",   label:"Stock & Finance",         freq:185, s:"neutral",  sc:0.02,  em:"anticipation",            src:"BERTopic T6 · 185 docs"},
+      {id:"legal",     label:"Legal & Law",             freq:162, s:"neutral",  sc:-0.08, em:"anticipation, concern",   src:"BERTopic T7 · 162 docs"},
+      {id:"global",    label:"China & Global AI",       freq:139, s:"neutral",  sc:-0.05, em:"anticipation",            src:"BERTopic T8 · 139 docs"},
+      {id:"ethics",    label:"Ethics & Bias",           freq:130, s:"negative", sc:-0.38, em:"disapproval, concern",    src:"BERTopic T9 · 130 docs"},
+      {id:"tech",      label:"AI Technology",           freq:122, s:"neutral",  sc:0.11,  em:"curiosity, admiration",   src:"BERTopic T10 · 122 docs"},
+      {id:"outlier",   label:"Unclassified Articles",   freq:3803,s:"neutral",  sc:0.04,  em:"neutral (86.6% of corpus)",src:"BERTopic T-1 · 3,803 docs (noise cluster)"},
+    ],
+    links: [
+      {source:"jobs",    target:"edu",      w:620},  // job displacement → workforce training
+      {source:"jobs",    target:"finance",  w:710},  // economic impact of job loss
+      {source:"jobs",    target:"threat",   w:590},  // fear of job loss
+      {source:"jobs",    target:"ethics",   w:420},  // fairness in automation
+      {source:"edu",     target:"chatbots", w:520},  // chatbots in education
+      {source:"chatbots",target:"health",   w:310},  // mental health chatbots (T2 keywords)
+      {source:"ethics",  target:"legal",    w:490},  // ethics → law/regulation
+      {source:"ethics",  target:"threat",   w:680},  // ethical concerns = threat framing
+      {source:"ethics",  target:"global",   w:390},  // global AI governance
+      {source:"health",  target:"tech",     w:380},  // healthcare tech
+      {source:"finance", target:"global",   w:350},  // global finance/chip wars
+      {source:"legal",   target:"global",   w:410},  // AI regulation globally
+      {source:"tech",    target:"chatbots", w:440},  // LLM technology
+      {source:"threat",  target:"global",   w:330},  // geopolitical AI threat
+      {source:"outlier", target:"jobs",     w:800},  // dominant UMAP cluster: Work/Jobs/Economy
+      {source:"outlier", target:"edu",      w:700},  // cluster 8: Education 438 docs
+      {source:"outlier", target:"finance",  w:400},
+    ]
+  },
+
+  framing: {
+    stat2: "<b>6</b> narrative frames · Cell 45",
+    nodes: [
+      // freq = actual pattern match count from Cell 45
+      {id:"f-econ",  label:"Economic Frame",   freq:1071, s:"neutral",  sc:0.02,  em:"anticipation",          src:"Framing · 1,071 matches (10.2%)"},
+      {id:"f-tool",  label:"Tool Framing",     freq:722,  s:"positive", sc:0.65,  em:"admiration, optimism",  src:"Framing · 722 matches (6.9%) · avg sentiment 0.649"},
+      {id:"f-threat",label:"Threat Frame",     freq:713,  s:"negative", sc:-0.35, em:"concern, fear",         src:"Framing · 713 matches (6.8%)"},
+      {id:"f-opp",   label:"Opportunity Frame",freq:634,  s:"positive", sc:0.53,  em:"optimism, admiration",  src:"Framing · 634 matches (6.0%)"},
+      {id:"f-agent", label:"Agent Framing",    freq:372,  s:"neutral",  sc:0.61,  em:"curiosity, anticipation",src:"Framing · 372 matches (3.5%) · avg sentiment 0.612"},
+      {id:"f-ethics",label:"Ethical Frame",    freq:328,  s:"negative", sc:-0.38, em:"disapproval, concern",  src:"Framing · 328 matches (3.1%) — ethics gap"},
+      // stakeholder groups from n-gram analysis (Cell 18)
+      {id:"g-stud",  label:"Students & Educators",freq:630,s:"neutral", sc:0.08,  em:"curiosity, anticipation",src:"Group mention · 630 articles (6.0%)"},
+      {id:"g-lead",  label:"Leaders & Policy",   freq:463,s:"neutral",  sc:-0.05, em:"anticipation, concern",  src:"Group mention · 463 articles (4.4%)"},
+      {id:"g-work",  label:"Workers & Employees",freq:316,s:"negative", sc:-0.31, em:"concern, fear",          src:"Group mention · 316 articles (3.0%)"},
+      {id:"g-cons",  label:"Consumers & Public", freq:282,s:"neutral",  sc:0.02,  em:"curiosity, confusion",   src:"Group mention · 282 articles (2.7%)"},
+      {id:"g-health",label:"Healthcare Workers", freq:232,s:"positive", sc:0.61,  em:"optimism, admiration",   src:"Group mention · 232 articles (2.2%)"},
+      {id:"g-create",label:"Creatives & Media",  freq:167,s:"negative", sc:-0.44, em:"disapproval, concern",   src:"Group mention · 167 articles (1.6%)"},
+    ],
+    links: [
+      {source:"f-econ",  target:"g-work",   w:900},
+      {source:"f-econ",  target:"g-lead",   w:810},
+      {source:"f-threat",target:"g-work",   w:713},
+      {source:"f-threat",target:"f-ethics", w:680},
+      {source:"f-tool",  target:"g-cons",   w:620},
+      {source:"f-tool",  target:"g-stud",   w:580},
+      {source:"f-opp",   target:"g-health", w:634},
+      {source:"f-opp",   target:"g-stud",   w:520},
+      {source:"f-agent", target:"g-lead",   w:372},
+      {source:"f-ethics",target:"g-lead",   w:490},
+      {source:"f-ethics",target:"g-create", w:328},
+      {source:"f-threat",target:"g-create", w:400},
+      {source:"f-tool",  target:"g-health", w:500},
+      {source:"f-econ",  target:"g-cons",   w:450},
+      {source:"g-stud",  target:"g-work",   w:380},
+      {source:"f-agent", target:"f-tool",   w:722},  // tool vs agent framing 1.9x
+    ]
+  },
+
+  behavior: {
+    stat2: "<b>8</b> behavioral categories · Cell 51",
+    nodes: [
+      // freq = actual keyword mention counts from Cell 51
+      {id:"b-adopt",  label:"Adoption",         freq:1295, s:"positive", sc:0.43,  em:"optimism, approval",    src:"Behavioral · 1,295 mentions (12.3%)"},
+      {id:"b-learn",  label:"Learning/Training",freq:1120, s:"positive", sc:0.38,  em:"curiosity, optimism",   src:"Behavioral · 1,120 mentions (10.7%)"},
+      {id:"b-reg",    label:"Regulation",        freq:798,  s:"neutral",  sc:-0.08, em:"anticipation, concern", src:"Behavioral · 798 mentions (7.6%)"},
+      {id:"b-create", label:"Creation/Building", freq:688,  s:"positive", sc:0.41,  em:"admiration, optimism",  src:"Behavioral · 688 mentions (6.6%)"},
+      {id:"b-concern",label:"Concern/Resistance",freq:391,  s:"negative", sc:-0.42, em:"fear, disapproval",     src:"Behavioral · 391 mentions (3.7%) · 3.3× less than adoption"},
+      {id:"b-auto",   label:"Automation",        freq:238,  s:"negative", sc:-0.31, em:"fear, concern",         src:"Behavioral · 238 mentions (2.3%)"},
+      {id:"b-dec",    label:"Decision-Making",   freq:131,  s:"neutral",  sc:0.12,  em:"anticipation, curiosity",src:"Behavioral · 131 mentions (1.2%)"},
+      {id:"b-inter",  label:"Human Interaction", freq:128,  s:"neutral",  sc:0.08,  em:"curiosity, anticipation",src:"Behavioral · 128 mentions (1.2%)"},
+      // org mentions from n-gram analysis (Cell 18)
+      {id:"o-google", label:"Google",    freq:211, s:"neutral",  sc:0.04,  em:"curiosity",            src:"Org mention · 211 headlines"},
+      {id:"o-ms",     label:"Microsoft", freq:157, s:"neutral",  sc:-0.05, em:"anticipation, concern", src:"Org mention · 157 headlines"},
+      {id:"o-meta",   label:"Meta",      freq:135, s:"neutral",  sc:0.02,  em:"anticipation",          src:"Org mention · 135 headlines"},
+      {id:"o-openai", label:"OpenAI",    freq:121, s:"positive", sc:0.48,  em:"curiosity, admiration", src:"Org mention · 121 headlines"},
+    ],
+    links: [
+      {source:"b-adopt",  target:"b-learn",   w:920},  // adoption ↔ learning
+      {source:"b-adopt",  target:"b-create",  w:688},
+      {source:"b-adopt",  target:"b-concern", w:391},  // 3.3x ratio
+      {source:"b-learn",  target:"b-create",  w:600},
+      {source:"b-reg",    target:"b-concern", w:798},
+      {source:"b-reg",    target:"b-auto",    w:500},
+      {source:"b-auto",   target:"b-concern", w:780},
+      {source:"b-dec",    target:"b-inter",   w:250},
+      {source:"b-adopt",  target:"o-google",  w:450},
+      {source:"b-adopt",  target:"o-openai",  w:500},
+      {source:"b-reg",    target:"o-ms",      w:380},
+      {source:"b-concern",target:"o-meta",    w:300},
+      {source:"b-create", target:"o-openai",  w:420},
+      {source:"b-auto",   target:"o-google",  w:350},
+      {source:"b-learn",  target:"o-ms",      w:300},
+    ]
+  }
+};
+
+// ─── GRAPH ENGINE ──────────────────────────────────────────────────────────
+const SC = d => d.s==="positive"?"var(--c-pos)":d.s==="negative"?"var(--c-neg)":"var(--c-neu)";
+let currentView = "topics";
+let sim, lnk, nd;
+
+const wrap = document.getElementById("gw");
+let W = wrap.clientWidth||800, H = 520;
+const svg = d3.select("#gsvg").attr("width",W).attr("height",H);
+const zoomBeh = d3.zoom().scaleExtent([0.25,5]).on("zoom",e=>g.attr("transform",e.transform));
+svg.call(zoomBeh);
+const g = svg.append("g");
+const tip = document.getElementById("gtip");
+
+function resetZoom(){ svg.transition().duration(400).call(zoomBeh.transform, d3.zoomIdentity.translate(0,0).scale(1)); }
+
+function buildGraph(viewKey) {
+  currentView = viewKey;
+  const {nodes, links, stat2} = VIEWS[viewKey];
+  document.getElementById("stat2").innerHTML = stat2;
+
+  // clear
+  g.selectAll("*").remove();
+  if(sim) sim.stop();
+
+  const MAX_W = d3.max(links, d=>d.w) || 1;
+  const allFreqs = nodes.map(d=>d.freq);
+  const rsc = d3.scaleSqrt().domain([d3.min(allFreqs), d3.max(allFreqs)]).range([7,24]);
+
+  // deep copy nodes/links for simulation
+  const N = nodes.map(d=>({...d}));
+  const L = links.map(d=>({...d}));
+
+  lnk = g.append("g").selectAll("line").data(L).join("line")
+    .attr("class","glink")
+    .attr("stroke","var(--color-border-primary)")
+    .attr("stroke-width",d=>0.5+(d.w/MAX_W)*2.8)
+    .attr("stroke-opacity",d=>0.1+(d.w/MAX_W)*0.45);
+
+  nd = g.append("g").selectAll("g").data(N).join("g")
+    .attr("class","nd")
+    .call(d3.drag()
+      .on("start",(e,d)=>{if(!e.active)sim.alphaTarget(0.3).restart();d.fx=d.x;d.fy=d.y;})
+      .on("drag",(e,d)=>{d.fx=e.x;d.fy=e.y;})
+      .on("end",(e,d)=>{if(!e.active)sim.alphaTarget(0);d.fx=null;d.fy=null;}));
+
+  nd.append("circle")
+    .attr("r",d=>rsc(d.freq))
+    .attr("fill",d=>SC(d))
+    .attr("fill-opacity",0.80)
+    .attr("stroke",d=>SC(d))
+    .attr("stroke-width",1.2)
+    .attr("stroke-opacity",0.45)
+    .style("cursor","pointer");
+
+  nd.append("text")
+    .attr("class","gnlabel")
+    .attr("dy",d=>rsc(d.freq)+11)
+    .attr("text-anchor","middle")
+    .attr("font-size",d=>Math.max(9,d.freq>800?11:d.freq>300?10:9)+"px")
+    .attr("fill","var(--color-text-secondary)")
+    .attr("fill-opacity",d=>d.freq>400?0.9:0.55)
+    .text(d=>d.label);
+
+  nd.on("mouseover",function(e,d){
+    const connIds = new Set(L.filter(l=>l.source.id===d.id||l.target.id===d.id)
+      .flatMap(l=>[l.source.id||l.source, l.target.id||l.target]));
+    connIds.add(d.id);
+    lnk.attr("stroke-opacity",l=>(l.source.id===d.id||l.target.id===d.id)?0.85:0.03)
+        .attr("stroke-width",l=>(l.source.id===d.id||l.target.id===d.id)?Math.max(1.5,0.5+(l.w/MAX_W)*2.8):0.5);
+    nd.select("circle").attr("fill-opacity",n=>connIds.has(n.id)?0.95:0.1);
+    nd.select("text").attr("fill-opacity",n=>connIds.has(n.id)?0.95:0.1);
+
+    const peers = L.filter(l=>l.source.id===d.id||l.target.id===d.id)
+      .sort((a,b)=>b.w-a.w).slice(0,5)
+      .map(l=>{
+        const o = l.source.id===d.id ? l.target : l.source;
+        const oLabel = o.label || (N.find(n=>n.id===o)||{}).label || o;
+        return `<div style="display:flex;justify-content:space-between;gap:8px">
+          <span style="color:var(--color-text-secondary)">${oLabel}</span>
+          <span style="color:var(--color-text-tertiary);font-size:10px;white-space:nowrap">${l.w} co-occ</span>
+        </div>`;
+      }).join("");
+
+    const sv = d.sc>0 ? "+"+d.sc.toFixed(2) : d.sc.toFixed(2);
+    const sl = {positive:"Positive",negative:"Negative",neutral:"Neutral"}[d.s];
+    tip.innerHTML = `
+      <div style="font-weight:600;font-size:13px;color:var(--color-text-primary);margin-bottom:6px">${d.label}</div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:3px">
+        <span>Articles / Mentions</span><span style="font-weight:500;color:var(--color-text-primary)">${d.freq.toLocaleString()}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:3px">
+        <span>Sentiment</span><span style="color:${SC(d)};font-weight:500">${sl} (${sv})</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+        <span>Top emotions</span><span style="color:var(--color-text-tertiary);font-size:10px;text-align:right;max-width:120px">${d.em}</span>
+      </div>
+      <div style="font-size:10px;color:var(--color-text-tertiary);margin-bottom:4px;letter-spacing:0.04em">SOURCE</div>
+      <div style="font-size:10px;color:var(--color-text-tertiary);margin-bottom:8px">${d.src}</div>
+      ${peers ? `<div style="font-size:10px;color:var(--color-text-tertiary);margin-bottom:3px;letter-spacing:0.04em">CO-OCCURRING</div>${peers}` : ""}
+    `;
+    tip.style.display="block";
+    const tx = Math.min(e.offsetX+16, W-240);
+    const ty = Math.max(Math.min(e.offsetY-20, H-240), 10);
+    tip.style.left=tx+"px"; tip.style.top=ty+"px";
+  })
+  .on("mousemove",function(e){
+    tip.style.left=Math.min(e.offsetX+16,W-240)+"px";
+    tip.style.top=Math.max(Math.min(e.offsetY-20,H-240),10)+"px";
+  })
+  .on("mouseout",function(){
+    lnk.attr("stroke-opacity",d=>0.1+(d.w/MAX_W)*0.45)
+        .attr("stroke-width",d=>0.5+(d.w/MAX_W)*2.8);
+    nd.select("circle").attr("fill-opacity",0.80);
+    nd.select("text").attr("fill-opacity",d=>d.freq>400?0.9:0.55);
+    tip.style.display="none";
+  });
+
+  sim = d3.forceSimulation(N)
+    .force("link", d3.forceLink(L).id(d=>d.id)
+      .distance(d=>260-(d.w/MAX_W)*170)
+      .strength(d=>0.2+(d.w/MAX_W)*0.6))
+    .force("charge", d3.forceManyBody().strength(d=>-rsc(d.freq)*22))
+    .force("center", d3.forceCenter(W/2, H/2))
+    .force("collision", d3.forceCollide().radius(d=>rsc(d.freq)+12));
+
+  sim.on("tick",()=>{
+    lnk.attr("x1",d=>d.source.x).attr("y1",d=>d.source.y)
+        .attr("x2",d=>d.target.x).attr("y2",d=>d.target.y);
+    nd.attr("transform",d=>`translate(${
+      Math.max(rsc(d.freq)+4,Math.min(W-rsc(d.freq)-4,d.x))},${
+      Math.max(rsc(d.freq)+4,Math.min(H-rsc(d.freq)-4,d.y))})`);
+  });
+
+  // reset filter
+  doFilter("all", document.querySelector(".fbtn.act"));
+}
+
+function switchView(viewKey, btn){
+  document.querySelectorAll(".tab").forEach(b=>b.classList.remove("act"));
+  btn.classList.add("act");
+  buildGraph(viewKey);
+}
+
+function doFilter(f, btn){
+  document.querySelectorAll(".fbtn").forEach(b=>b.classList.remove("act"));
+  if(btn) btn.classList.add("act");
+  nd.attr("opacity",d=>f==="all"||d.s===f?1:0.08);
+  lnk.attr("opacity",d=>f==="all"||(d.source.s===f||d.target.s===f)?1:0.03);
+}
+
+new ResizeObserver(()=>{
+  W = wrap.clientWidth;
+  svg.attr("width",W);
+  if(sim) sim.force("center",d3.forceCenter(W/2,H/2)).alpha(0.15).restart();
+}).observe(wrap);
+
+// init
+buildGraph("topics");
+</script>
+</body>
+</html>
